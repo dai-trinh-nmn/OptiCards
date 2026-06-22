@@ -21,4 +21,8 @@ class ReminderPrefs(context: Context) {
     var reminderMinute: Int
         get() = prefs.getInt("MINUTE", 0)
         set(value) = prefs.edit().putInt("MINUTE", value).apply()
+
+    var cachedDueStatements: String
+        get() = prefs.getString("CACHED_STATEMENTS", "[]") ?: "[]"
+        set(value) = prefs.edit().putString("CACHED_STATEMENTS", value).apply()
 }

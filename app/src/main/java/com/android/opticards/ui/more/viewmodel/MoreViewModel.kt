@@ -10,6 +10,7 @@ import com.android.opticards.data.local.ReminderPrefs
 import com.android.opticards.data.model.MembershipPayload
 import com.android.opticards.data.network.ApiClient
 import com.android.opticards.utils.ReminderManager
+import com.google.gson.Gson
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,6 +69,7 @@ class MoreViewModel(application: Application) : AndroidViewModel(application) {
                 if (statementsRes.isSuccessful) {
                     val items = statementsRes.body() ?: emptyList()
                     _dueStatements.value = items
+                    reminderPrefs.cachedDueStatements = Gson().toJson(items)
                     syncAlarms(items)
                 }
             } catch (e: Exception) {
