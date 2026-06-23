@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import kotlinx.coroutines.coroutineScope
 
 class MoreViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -59,18 +60,20 @@ class MoreViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val profileDeferred = async { ApiClient.apiService.getUserProfile() }
-                val statementsDeferred = async { ApiClient.apiService.getDueStatements() }
+                coroutineScope {
+                    val profileDeferred = async { ApiClient.apiService.getUserProfile() }
+                    val statementsDeferred = async { ApiClient.apiService.getDueStatements() }
 
-                val profileRes = profileDeferred.await()
-                val statementsRes = statementsDeferred.await()
+                    val profileRes = profileDeferred.await()
+                    val statementsRes = statementsDeferred.await()
 
-                if (profileRes.isSuccessful) _userProfile.value = profileRes.body()
-                if (statementsRes.isSuccessful) {
-                    val items = statementsRes.body() ?: emptyList()
-                    _dueStatements.value = items
-                    reminderPrefs.cachedDueStatements = Gson().toJson(items)
-                    syncAlarms(items)
+                    if (profileRes.isSuccessful) _userProfile.value = profileRes.body()
+                    if (statementsRes.isSuccessful) {
+                        val items = statementsRes.body() ?: emptyList()
+                        _dueStatements.value = items
+                        reminderPrefs.cachedDueStatements = Gson().toJson(items)
+                        syncAlarms(items)
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

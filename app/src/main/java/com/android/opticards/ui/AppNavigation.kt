@@ -1,7 +1,12 @@
 package com.android.opticards.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -33,12 +38,19 @@ import java.nio.charset.StandardCharsets
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.android.opticards.ui.components.CustomPopup
 import com.android.opticards.ui.merchant.screens.MerchantDetailScreen
 import com.android.opticards.ui.more.screens.MoreScreen
 import com.android.opticards.ui.promotion.PromotionScreen
 import com.android.opticards.ui.promotions.viewmodel.PromotionViewModel
 import com.android.opticards.ui.transaction.TransactionHistoryScreen
 import com.android.opticards.ui.transaction.screens.TransactionEntryScreen
+import com.android.opticards.utils.NetworkConnectivityObserver
 
 @Composable
 fun AppNavigation(
@@ -46,6 +58,22 @@ fun AppNavigation(
     onboardingViewModel: OnboardingViewModel = viewModel()
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val networkObserver = remember { NetworkConnectivityObserver(context) }
+    val isOnline by networkObserver.observe().collectAsState(initial = true)
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    var showOfflinePopup by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isOnline, currentRoute) {
+        if (!isOnline && currentRoute != "LoginScreen") {
+            showOfflinePopup = true
+        } else {
+            showOfflinePopup = false
+        }
+    }
 
     val startDestination = remember {
         if (tokenManager.isLoggedIn()) {
@@ -92,339 +120,353 @@ fun AppNavigation(
         }
     }
 
-    NavHost(navController = navController, startDestination = startDestination) {
-        composable("LoginScreen") {
-            LoginScreen(
-                onLoginSuccess = { isOnboarded ->
-                    if (isOnboarded) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(navController = navController, startDestination = startDestination) {
+            composable("LoginScreen") {
+                LoginScreen(
+                    onLoginSuccess = { isOnboarded ->
+                        if (isOnboarded) {
+                            navController.safeNavigate("HomeScreen") {
+                                popUpTo("LoginScreen") { inclusive = true }
+                            }
+                        } else {
+                            navController.safeNavigate("CardSelectionScreen") {
+                                popUpTo("LoginScreen") { inclusive = true }
+                            }
+                        }
+                    }
+                )
+            }
+
+            composable("CardSelectionScreen") {
+                CardSelectionScreen(
+                    viewModel = onboardingViewModel,
+                    onNext = {
+                        val banksNeedingMembership = onboardingViewModel.getBanksRequiringMembership()
+                        if (banksNeedingMembership.isNotEmpty()) {
+                            navController.safeNavigate("MembershipSelectionScreen")
+                        } else {
+                            navController.safeNavigate("CardDetailScreenTwo")
+                        }
+                    },
+                    onGoToFinish = { navController.safeNavigate("FinishSetupScreen") }
+                )
+            }
+
+            composable("MembershipSelectionScreen") {
+                MembershipSelectionScreen(
+                    viewModel = onboardingViewModel,
+                    onBack = { navController.safePopBackStack() },
+                    onNext = {
+                        val cardsForSpend = onboardingViewModel.getCardsForSpendTracking()
+                        if (cardsForSpend.isNotEmpty()) {
+                            navController.safeNavigate("CardDetailScreenTwo")
+                        } else {
+                            onboardingViewModel.submitOnboarding()
+                            navController.safeNavigate("FinishSetupScreen")
+                        }
+                    },
+                    onSkip = {
+                        val cardsForSpend = onboardingViewModel.getCardsForSpendTracking()
+                        if (cardsForSpend.isNotEmpty()) {
+                            navController.safeNavigate("CardDetailScreenTwo")
+                        } else {
+                            onboardingViewModel.submitOnboarding()
+                            navController.safeNavigate("FinishSetupScreen")
+                        }
+                    }
+                )
+            }
+
+            composable("CardDetailScreenTwo") {
+                CardDetailScreenTwo(
+                    viewModel = onboardingViewModel,
+                    onBack = { navController.safePopBackStack() },
+                    onFinish = { navController.safeNavigate("FinishSetupScreen") },
+                    onSkip = { navController.safeNavigate("FinishSetupScreen") }
+                )
+            }
+
+            composable("FinishSetupScreen") {
+                FinishSetupScreen(
+                    onGoHome = {
+                        tokenManager.setOnboarded(true)
                         navController.safeNavigate("HomeScreen") {
-                            popUpTo("LoginScreen") { inclusive = true }
-                        }
-                    } else {
-                        navController.safeNavigate("CardSelectionScreen") {
-                            popUpTo("LoginScreen") { inclusive = true }
+                            popUpTo(0)
                         }
                     }
-                }
-            )
-        }
+                )
+            }
 
-        composable("CardSelectionScreen") {
-            CardSelectionScreen(
-                viewModel = onboardingViewModel,
-                onNext = {
-                    val banksNeedingMembership = onboardingViewModel.getBanksRequiringMembership()
-                    if (banksNeedingMembership.isNotEmpty()) {
-                        navController.safeNavigate("MembershipSelectionScreen")
-                    } else {
-                        navController.safeNavigate("CardDetailScreenTwo")
+            composable("HomeScreen") { backStackEntry ->
+                val homeViewModel: HomeViewModel = viewModel(viewModelStoreOwner = backStackEntry)
+
+                HomeScreen(
+                    viewModel = homeViewModel,
+                    onNavigateToSearch = { navController.safeNavigate("SearchScreen") },
+                    onNavigateToFavorites = { navController.safeNavigate("FavoriteListScreen") },
+                    onNavigateToTopMerchants = { navController.safeNavigate("TopMerchantListScreen") },
+                    onTabSelected = navigateToTab,
+                    onNavigateToMerchantDetail = { merchantId ->
+                        navController.safeNavigate("MerchantDetail/$merchantId")
                     }
-                },
-                onGoToFinish = { navController.safeNavigate("FinishSetupScreen") }
-            )
-        }
+                )
+            }
 
-        composable("MembershipSelectionScreen") {
-            MembershipSelectionScreen(
-                viewModel = onboardingViewModel,
-                onBack = { navController.safePopBackStack() },
-                onNext = {
-                    val cardsForSpend = onboardingViewModel.getCardsForSpendTracking()
-                    if (cardsForSpend.isNotEmpty()) {
-                        navController.safeNavigate("CardDetailScreenTwo")
-                    } else {
-                        onboardingViewModel.submitOnboarding()
-                        navController.safeNavigate("FinishSetupScreen")
+            composable("FavoriteListScreen") {
+                val homeEntry = remember(it) { navController.getBackStackEntry("HomeScreen") }
+                val sharedViewModel: HomeViewModel = viewModel(viewModelStoreOwner = homeEntry)
+
+                FavoriteListScreen(
+                    viewModel = sharedViewModel,
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onNavigateToMerchantDetail = { merchantId ->
+                        navController.safeNavigate("MerchantDetail/$merchantId")
                     }
-                },
-                onSkip = {
-                    val cardsForSpend = onboardingViewModel.getCardsForSpendTracking()
-                    if (cardsForSpend.isNotEmpty()) {
-                        navController.safeNavigate("CardDetailScreenTwo")
-                    } else {
-                        onboardingViewModel.submitOnboarding()
-                        navController.safeNavigate("FinishSetupScreen")
+                )
+            }
+
+            composable("TopMerchantListScreen") {
+                val homeEntry = remember(it) { navController.getBackStackEntry("HomeScreen") }
+                val sharedViewModel: HomeViewModel = viewModel(viewModelStoreOwner = homeEntry)
+
+                TopMerchantListScreen(
+                    viewModel = sharedViewModel,
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onNavigateToMerchantDetail = { merchantId ->
+                        navController.safeNavigate("MerchantDetail/$merchantId")
                     }
-                }
-            )
-        }
+                )
+            }
 
-        composable("CardDetailScreenTwo") {
-            CardDetailScreenTwo(
-                viewModel = onboardingViewModel,
-                onBack = { navController.safePopBackStack() },
-                onFinish = { navController.safeNavigate("FinishSetupScreen") },
-                onSkip = { navController.safeNavigate("FinishSetupScreen") }
-            )
-        }
-
-        composable("FinishSetupScreen") {
-            FinishSetupScreen(
-                onGoHome = {
-                    tokenManager.setOnboarded(true)
-                    navController.safeNavigate("HomeScreen") {
-                        popUpTo(0)
+            composable("SearchScreen") {
+                SearchScreen(
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onNavigateToContribution = { query: String, isFromNoResults: Boolean ->
+                        val encodedQuery = android.net.Uri.encode(query)
+                        navController.safeNavigate("ContributionScreen?query=$encodedQuery&isFromNoResults=$isFromNoResults")
+                    },
+                    onNavigateToMerchantDetail = { merchantId ->
+                        navController.safeNavigate("MerchantDetail/$merchantId")
                     }
+                )
+            }
+
+            composable(
+                route = "ContributionScreen?query={query}&isFromNoResults={isFromNoResults}",
+                arguments = listOf(
+                    navArgument("query") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = ""
+                    },
+                    navArgument("isFromNoResults") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    }
+                )
+            ) { backStackEntry ->
+                val rawQuerry = backStackEntry.arguments?.getString("query") ?: ""
+                val decodedQuery = android.net.Uri.decode(rawQuerry)
+                val isFromNoResults = backStackEntry.arguments?.getBoolean("isFromNoResults") ?: false
+
+                ContributionScreen(
+                    initialQuery = decodedQuery,
+                    onNavigateBack = {
+                        if (isFromNoResults) {
+                            navController.popBackStack("HomeScreen", inclusive = false)
+                        } else {
+                            navController.safePopBackStack()
+                        }
+                    }
+                )
+            }
+
+            composable("CardsScreen") {
+                CardsScreen(
+                    refreshTrigger = cardsRefreshTrigger,
+                    onAddCardClick = {
+                        onboardingViewModel.clearAllDrafts()
+                        onboardingViewModel.resetSubmitStatus()
+                        onboardingViewModel.refreshData()
+                        navController.safeNavigate("CardSelectionScreen")
+                    },
+                    onCardDetailClick = { cardId -> navController.safeNavigate("CardDetail/$cardId") },
+                    onCategorySetupClick = { cardId -> navController.safeNavigate("CategorySelection/$cardId") },
+                    onTabSelected = navigateToTab
+                )
+            }
+
+            composable(
+                route = "CardDetail/{userCardId}",
+                arguments = listOf(navArgument("userCardId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val userCardId = backStackEntry.arguments?.getInt("userCardId") ?: 0
+
+                CardDetailScreen(
+                    userCardId = userCardId,
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onEditTokenClick = { bankName, cardName, logoUrl ->
+                        val encodedUrl = URLEncoder.encode(logoUrl, StandardCharsets.UTF_8.toString())
+                        navController.safeNavigate("EditCard/$userCardId?bankName=$bankName&cardName=$cardName&logoUrl=$encodedUrl")
+                    },
+                    onChangeCategoryClick = {
+                        navController.safeNavigate("CategorySelection/$userCardId")
+                    }
+                )
+            }
+
+            composable(
+                route = "EditCard/{userCardId}?bankName={bankName}&cardName={cardName}&logoUrl={logoUrl}",
+                arguments = listOf(
+                    navArgument("userCardId") { type = NavType.IntType },
+                    navArgument("bankName") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("cardName") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("logoUrl") { type = NavType.StringType; defaultValue = "" }
+                )
+            ) { backStackEntry ->
+                val userCardId = backStackEntry.arguments?.getInt("userCardId") ?: 0
+                val bankName = backStackEntry.arguments?.getString("bankName") ?: ""
+                val cardName = backStackEntry.arguments?.getString("cardName") ?: ""
+                val logoUrl = backStackEntry.arguments?.getString("logoUrl") ?: ""
+
+                val editViewModel: EditCardViewModel = viewModel()
+
+                LaunchedEffect(userCardId) {
+                    try {
+                        val response = apiService.getCardDetail(userCardId)
+                        if (response.isSuccessful && response.body() != null) {
+                            editViewModel.initData(response.body()!!)
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
-            )
-        }
 
-        composable("HomeScreen") { backStackEntry ->
-            val homeViewModel: HomeViewModel = viewModel(viewModelStoreOwner = backStackEntry)
+                EditCardScreen(
+                    userCardId = userCardId,
+                    viewModel = editViewModel,
+                    bankName = bankName,
+                    cardName = cardName,
+                    logoUrl = logoUrl,
+                    onBack = { navController.safePopBackStack() },
+                    onSave = { navController.safePopBackStack() }
+                )
+            }
 
-            HomeScreen(
-                viewModel = homeViewModel,
-                onNavigateToSearch = { navController.safeNavigate("SearchScreen") },
-                onNavigateToFavorites = { navController.safeNavigate("FavoriteListScreen") },
-                onNavigateToTopMerchants = { navController.safeNavigate("TopMerchantListScreen") },
-                onTabSelected = navigateToTab,
-                onNavigateToMerchantDetail = { merchantId ->
-                    navController.safeNavigate("MerchantDetail/$merchantId")
-                }
-            )
-        }
+            composable(
+                route = "CategorySelection/{userCardId}",
+                arguments = listOf(navArgument("userCardId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val userCardId = backStackEntry.arguments?.getInt("userCardId") ?: 0
+                CategorySelectionScreen(
+                    userCardId = userCardId,
+                    onNavigateBack = { navController.safePopBackStack() }
+                )
+            }
 
-        composable("FavoriteListScreen") {
-            val homeEntry = remember(it) { navController.getBackStackEntry("HomeScreen") }
-            val sharedViewModel: HomeViewModel = viewModel(viewModelStoreOwner = homeEntry)
+            composable(
+                route = "MerchantDetail/{merchantId}",
+                arguments = listOf(navArgument("merchantId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val merchantId = backStackEntry.arguments?.getInt("merchantId") ?: 0
+                MerchantDetailScreen(
+                    merchantId = merchantId,
+                    onNavigateBack = { navController.safePopBackStack() },
+                    onNavigateToContribution = { encodedMerchantName: String ->
+                        navController.safeNavigate("ContributionScreen?query=$encodedMerchantName&isFromNoResults=false")
+                    },
+                    onNavigateToTransactionEntry = { mId: Int, mccCode: String, amount: Int, paymentChannel: String ->
+                        navController.safeNavigate("TransactionEntry/$mId?mccCode=$mccCode&amount=$amount&paymentChannel=$paymentChannel")
+                    }
+                )
+            }
 
-            FavoriteListScreen(
-                viewModel = sharedViewModel,
-                onNavigateBack = { navController.safePopBackStack() },
-                onNavigateToMerchantDetail = { merchantId ->
-                    navController.safeNavigate("MerchantDetail/$merchantId")
-                }
-            )
-        }
+            composable(
+                route = "TransactionEntry/{merchantId}?mccCode={mccCode}&amount={amount}&paymentChannel={paymentChannel}",
+                arguments = listOf(
+                    navArgument("merchantId") { type = NavType.IntType },
+                    navArgument("mccCode") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("amount") { type = NavType.IntType; defaultValue = 0 },
+                    navArgument("paymentChannel") { type = NavType.StringType; nullable = true; defaultValue = null }
+                )
+            ) { backStackEntry ->
+                val merchantId = backStackEntry.arguments?.getInt("merchantId") ?: 0
+                val mccCode = backStackEntry.arguments?.getString("mccCode") ?: ""
+                val amount = backStackEntry.arguments?.getInt("amount") ?: 0
+                val paymentChannel = backStackEntry.arguments?.getString("paymentChannel") ?: "ANY"
 
-        composable("TopMerchantListScreen") {
-            val homeEntry = remember(it) { navController.getBackStackEntry("HomeScreen") }
-            val sharedViewModel: HomeViewModel = viewModel(viewModelStoreOwner = homeEntry)
-
-            TopMerchantListScreen(
-                viewModel = sharedViewModel,
-                onNavigateBack = { navController.safePopBackStack() },
-                onNavigateToMerchantDetail = { merchantId ->
-                    navController.safeNavigate("MerchantDetail/$merchantId")
-                }
-            )
-        }
-
-        composable("SearchScreen") {
-            SearchScreen(
-                onNavigateBack = { navController.safePopBackStack() },
-                onNavigateToContribution = { query: String, isFromNoResults: Boolean ->
-                    val encodedQuery = android.net.Uri.encode(query)
-                    navController.safeNavigate("ContributionScreen?query=$encodedQuery&isFromNoResults=$isFromNoResults")
-                },
-                onNavigateToMerchantDetail = { merchantId ->
-                    navController.safeNavigate("MerchantDetail/$merchantId")
-                }
-            )
-        }
-
-        composable(
-            route = "ContributionScreen?query={query}&isFromNoResults={isFromNoResults}",
-            arguments = listOf(
-                navArgument("query") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = ""
-                },
-                navArgument("isFromNoResults") {
-                    type = NavType.BoolType
-                    defaultValue = false
-                }
-            )
-        ) { backStackEntry ->
-            val rawQuerry = backStackEntry.arguments?.getString("query") ?: ""
-            val decodedQuery = android.net.Uri.decode(rawQuerry)
-            val isFromNoResults = backStackEntry.arguments?.getBoolean("isFromNoResults") ?: false
-
-            ContributionScreen(
-                initialQuery = decodedQuery,
-                onNavigateBack = {
-                    if (isFromNoResults) {
-                        navController.popBackStack("HomeScreen", inclusive = false)
-                    } else {
+                TransactionEntryScreen(
+                    merchantId = merchantId,
+                    mccCodeParam = mccCode,
+                    initialAmount = amount,
+                    initialChannel = paymentChannel,
+                    onNavigateBack = { isSuccess ->
+                        if (isSuccess) {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("refresh_history", true)
+                        }
                         navController.safePopBackStack()
                     }
-                }
-            )
-        }
-
-        composable("CardsScreen") {
-            CardsScreen(
-                refreshTrigger = cardsRefreshTrigger,
-                onAddCardClick = {
-                    onboardingViewModel.clearAllDrafts()
-                    onboardingViewModel.resetSubmitStatus()
-                    onboardingViewModel.refreshData()
-                    navController.safeNavigate("CardSelectionScreen")
-                },
-                onCardDetailClick = { cardId -> navController.safeNavigate("CardDetail/$cardId") },
-                onCategorySetupClick = { cardId -> navController.safeNavigate("CategorySelection/$cardId") },
-                onTabSelected = navigateToTab
-            )
-        }
-
-        composable(
-            route = "CardDetail/{userCardId}",
-            arguments = listOf(navArgument("userCardId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val userCardId = backStackEntry.arguments?.getInt("userCardId") ?: 0
-
-            CardDetailScreen(
-                userCardId = userCardId,
-                onNavigateBack = { navController.safePopBackStack() },
-                onEditTokenClick = { bankName, cardName, logoUrl ->
-                    val encodedUrl = URLEncoder.encode(logoUrl, StandardCharsets.UTF_8.toString())
-                    navController.safeNavigate("EditCard/$userCardId?bankName=$bankName&cardName=$cardName&logoUrl=$encodedUrl")
-                },
-                onChangeCategoryClick = {
-                    navController.safeNavigate("CategorySelection/$userCardId")
-                }
-            )
-        }
-
-        composable(
-            route = "EditCard/{userCardId}?bankName={bankName}&cardName={cardName}&logoUrl={logoUrl}",
-            arguments = listOf(
-                navArgument("userCardId") { type = NavType.IntType },
-                navArgument("bankName") { type = NavType.StringType; defaultValue = "" },
-                navArgument("cardName") { type = NavType.StringType; defaultValue = "" },
-                navArgument("logoUrl") { type = NavType.StringType; defaultValue = "" }
-            )
-        ) { backStackEntry ->
-            val userCardId = backStackEntry.arguments?.getInt("userCardId") ?: 0
-            val bankName = backStackEntry.arguments?.getString("bankName") ?: ""
-            val cardName = backStackEntry.arguments?.getString("cardName") ?: ""
-            val logoUrl = backStackEntry.arguments?.getString("logoUrl") ?: ""
-
-            val editViewModel: EditCardViewModel = viewModel()
-
-            LaunchedEffect(userCardId) {
-                try {
-                    val response = apiService.getCardDetail(userCardId)
-                    if (response.isSuccessful && response.body() != null) {
-                        editViewModel.initData(response.body()!!)
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
+                )
             }
 
-            EditCardScreen(
-                userCardId = userCardId,
-                viewModel = editViewModel,
-                bankName = bankName,
-                cardName = cardName,
-                logoUrl = logoUrl,
-                onBack = { navController.safePopBackStack() },
-                onSave = { navController.safePopBackStack() }
-            )
-        }
+            composable("TransactionHistoryScreen") { backStackEntry ->
+                val historyViewModel: com.android.opticards.ui.transaction.viewmodel.TransactionHistoryViewModel = viewModel()
 
-        composable(
-            route = "CategorySelection/{userCardId}",
-            arguments = listOf(navArgument("userCardId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val userCardId = backStackEntry.arguments?.getInt("userCardId") ?: 0
-            CategorySelectionScreen(
-                userCardId = userCardId,
-                onNavigateBack = { navController.safePopBackStack() }
-            )
-        }
+                val savedStateHandle = backStackEntry.savedStateHandle
+                val shouldRefresh = savedStateHandle.get<Boolean>("refresh_history") ?: false
 
-        composable(
-            route = "MerchantDetail/{merchantId}",
-            arguments = listOf(navArgument("merchantId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val merchantId = backStackEntry.arguments?.getInt("merchantId") ?: 0
-            MerchantDetailScreen(
-                merchantId = merchantId,
-                onNavigateBack = { navController.safePopBackStack() },
-                onNavigateToContribution = { encodedMerchantName: String ->
-                    navController.safeNavigate("ContributionScreen?query=$encodedMerchantName&isFromNoResults=false")
-                },
-                onNavigateToTransactionEntry = { mId: Int, mccCode: String, amount: Int, paymentChannel: String ->
-                    navController.safeNavigate("TransactionEntry/$mId?mccCode=$mccCode&amount=$amount&paymentChannel=$paymentChannel")
-                }
-            )
-        }
-
-        composable(
-            route = "TransactionEntry/{merchantId}?mccCode={mccCode}&amount={amount}&paymentChannel={paymentChannel}",
-            arguments = listOf(
-                navArgument("merchantId") { type = NavType.IntType },
-                navArgument("mccCode") { type = NavType.StringType; nullable = true; defaultValue = null },
-                navArgument("amount") { type = NavType.IntType; defaultValue = 0 },
-                navArgument("paymentChannel") { type = NavType.StringType; nullable = true; defaultValue = null }
-            )
-        ) { backStackEntry ->
-            val merchantId = backStackEntry.arguments?.getInt("merchantId") ?: 0
-            val mccCode = backStackEntry.arguments?.getString("mccCode") ?: ""
-            val amount = backStackEntry.arguments?.getInt("amount") ?: 0
-            val paymentChannel = backStackEntry.arguments?.getString("paymentChannel") ?: "ANY"
-
-            TransactionEntryScreen(
-                merchantId = merchantId,
-                mccCodeParam = mccCode,
-                initialAmount = amount,
-                initialChannel = paymentChannel,
-                onNavigateBack = { isSuccess ->
-                    if (isSuccess) {
-                        navController.previousBackStackEntry?.savedStateHandle?.set("refresh_history", true)
+                LaunchedEffect(shouldRefresh) {
+                    if (shouldRefresh) {
+                        historyViewModel.loadInitialData()
+                        savedStateHandle.remove<Boolean>("refresh_history")
                     }
-                    navController.safePopBackStack()
                 }
-            )
-        }
 
-        composable("TransactionHistoryScreen") { backStackEntry ->
-            val historyViewModel: com.android.opticards.ui.transaction.viewmodel.TransactionHistoryViewModel = viewModel()
-
-            val savedStateHandle = backStackEntry.savedStateHandle
-            val shouldRefresh = savedStateHandle.get<Boolean>("refresh_history") ?: false
-
-            LaunchedEffect(shouldRefresh) {
-                if (shouldRefresh) {
-                    historyViewModel.loadInitialData()
-                    savedStateHandle.remove<Boolean>("refresh_history")
-                }
+                TransactionHistoryScreen(
+                    viewModel = historyViewModel,
+                    refreshTrigger = transactionRefreshTrigger,
+                    onNavigateToTransactionEntry = {
+                        navController.safeNavigate("TransactionEntry/0?mccCode=&amount=0&paymentChannel=ANY")
+                    },
+                    onTabSelected = navigateToTab
+                )
             }
 
-            TransactionHistoryScreen(
-                viewModel = historyViewModel,
-                refreshTrigger = transactionRefreshTrigger,
-                onNavigateToTransactionEntry = {
-                    navController.safeNavigate("TransactionEntry/0?mccCode=&amount=0&paymentChannel=ANY")
-                },
-                onTabSelected = navigateToTab
-            )
-        }
+            composable("PromotionScreen") {
+                val promotionViewModel: PromotionViewModel = viewModel()
+                PromotionScreen(
+                    viewModel = promotionViewModel,
+                    refreshTrigger = promotionRefreshTrigger,
+                    onTabSelected = navigateToTab
+                )
+            }
+            composable("MoreScreen") {
+                val moreViewModel: com.android.opticards.ui.more.viewmodel.MoreViewModel = viewModel()
 
-        composable("PromotionScreen") {
-            val promotionViewModel: PromotionViewModel = viewModel()
-            PromotionScreen(
-                viewModel = promotionViewModel,
-                refreshTrigger = promotionRefreshTrigger,
-                onTabSelected = navigateToTab
-            )
-        }
-        composable("MoreScreen") {
-            val moreViewModel: com.android.opticards.ui.more.viewmodel.MoreViewModel = viewModel()
-
-            MoreScreen(
-                viewModel = moreViewModel,
-                refreshTrigger = moreRefreshTrigger,
-                onTabSelected = navigateToTab,
-                onLogoutClick = {
-                    tokenManager.clearAllToken()
-                    navController.navigate("LoginScreen") {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            inclusive = true
+                MoreScreen(
+                    viewModel = moreViewModel,
+                    refreshTrigger = moreRefreshTrigger,
+                    onTabSelected = navigateToTab,
+                    onLogoutClick = {
+                        tokenManager.clearAllToken()
+                        navController.navigate("LoginScreen") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = true
+                            }
                         }
                     }
-                }
+                )
+            }
+        }
+
+        if (showOfflinePopup) {
+            CustomPopup(
+                title = "Không có kết nối mạng",
+                message = "Vui lòng kiểm tra lại kết nối mạng và thử lại!",
+                icon = Icons.Default.WifiOff,
+                iconTint = Color(0xFFDC3545),
+                primaryButtonText = "Đã hiểu",
+                onPrimaryClick = { showOfflinePopup = false },
+                onDismissRequest = { showOfflinePopup = false }
             )
         }
     }
