@@ -9,7 +9,8 @@ import okhttp3.Response
 import okhttp3.Route
 
 class TokenAuthenticator(
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val onSessionExpired: (() -> Unit)?
 ) : Authenticator {
     override fun authenticate(route: Route?, response: Response): Request? {
         if (response.responseCount >= 3) {
@@ -34,9 +35,11 @@ class TokenAuthenticator(
                     }
                     refreshResponse.accessToken
                 } else {
+                    onSessionExpired?.invoke()
                     null
                 }
             } catch (e: Exception) {
+                onSessionExpired?.invoke()
                 null
             }
         }

@@ -9,6 +9,7 @@ data class GoogleTokenRequest(
 data class AuthResponse(
     val success: Boolean?,
     val message: String?,
+    val role: String = "user",
     @SerializedName("accessToken") val accessToken: String?,
     @SerializedName("refreshToken") val refreshToken: String?,
     val isOnboarded: Boolean?,

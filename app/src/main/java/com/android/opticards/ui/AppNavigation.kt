@@ -3,6 +3,7 @@ package com.android.opticards.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,10 +40,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.android.opticards.data.network.ApiClient
 import com.android.opticards.ui.components.CustomPopup
 import com.android.opticards.ui.merchant.screens.MerchantDetailScreen
 import com.android.opticards.ui.more.screens.MoreScreen
@@ -51,13 +54,38 @@ import com.android.opticards.ui.promotions.viewmodel.PromotionViewModel
 import com.android.opticards.ui.transaction.TransactionHistoryScreen
 import com.android.opticards.ui.transaction.screens.TransactionEntryScreen
 import com.android.opticards.utils.NetworkConnectivityObserver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavigation(
-    tokenManager: TokenManager,
-    onboardingViewModel: OnboardingViewModel = viewModel()
+    tokenManager: TokenManager
 ) {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
+    var showBannedPopup by remember { mutableStateOf(false) }
+
+    remember {
+        ApiClient.initialize(
+            manager = tokenManager,
+            onBanned = {
+                scope.launch(Dispatchers.Main) {
+                    showBannedPopup = true
+                }
+            },
+            onExpired = {
+                scope.launch(Dispatchers.Main) {
+                    tokenManager.clearAllToken()
+                    navController.navigate("LoginScreen") {
+                        popUpTo(navController.graph.id) { inclusive = true}
+                    }
+                }
+            }
+        )
+        true
+    }
+
+    val onboardingViewModel: OnboardingViewModel = viewModel()
     val context = LocalContext.current
     val networkObserver = remember { NetworkConnectivityObserver(context) }
     val isOnline by networkObserver.observe().collectAsState(initial = true)
@@ -467,6 +495,24 @@ fun AppNavigation(
                 primaryButtonText = "Đã hiểu",
                 onPrimaryClick = { showOfflinePopup = false },
                 onDismissRequest = { showOfflinePopup = false }
+            )
+        }
+
+        if (showBannedPopup) {
+            CustomPopup(
+                title = "Tài khoản bị khóa",
+                message = "Tài khoản của bạn đã bị vô hiệu hóa bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.",
+                icon = Icons.Default.Lock,
+                iconTint = Color(0xFFDC3545),
+                primaryButtonText = "Đăng xuất",
+                onPrimaryClick = {
+                    showBannedPopup = false
+                    tokenManager.clearAllToken()
+                    navController.navigate("LoginScreen") {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
+                onDismissRequest = {}
             )
         }
     }

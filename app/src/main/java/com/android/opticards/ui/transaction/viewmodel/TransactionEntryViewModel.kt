@@ -155,6 +155,7 @@ class TransactionEntryViewModel : ViewModel() {
 
     fun onDateSelected(millis: Long) {
         selectedDate.value = millis
+        scheduleFetch()
     }
 
     private fun scheduleFetch() {
@@ -168,7 +169,9 @@ class TransactionEntryViewModel : ViewModel() {
     private suspend fun fetchSuggestions() {
         try {
             val amt = amountStr.value.toIntOrNull() ?: 0
-            val req = SuggestionRequest(mccCode.value, amt, paymentMethod.value, null, true)
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+            val dateStr = sdf.format(java.util.Date(selectedDate.value))
+            val req = SuggestionRequest(mccCode.value, amt, paymentMethod.value, null, true, dateStr)
             val res = ApiClient.apiService.getCardSuggestions(currentMerchantId, req)
 
             if (res.isSuccessful) {

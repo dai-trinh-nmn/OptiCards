@@ -38,7 +38,8 @@ data class SuggestionRequest(
     @SerializedName("amount") val amount: Int,
     @SerializedName("paymentChannel") val paymentChannel: String,
     @SerializedName("cardBrand") val cardBrand: String?,
-    @SerializedName("fetchAllOwned") val fetchAllOwned: Boolean = false
+    @SerializedName("fetchAllOwned") val fetchAllOwned: Boolean = false,
+    @SerializedName("transactionDate") val transactionDate: String? = null
 )
 
 data class CardSuggestionItem(

@@ -32,16 +32,6 @@ class MainActivity : ComponentActivity() {
 
         val tokenManager = TokenManager(this)
 
-        ApiClient.initialize(tokenManager) {
-            runOnUiThread {
-                val intent = Intent(this@MainActivity, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-                startActivity(intent)
-                finish()
-            }
-        }
-
         setContent {
             OptiCardsTheme {
                 Surface(

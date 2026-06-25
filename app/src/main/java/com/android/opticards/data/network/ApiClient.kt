@@ -9,10 +9,14 @@ object ApiClient {
     private const val BASE_URL = "https://pi-server.tail59c177.ts.net/"
 
     private var tokenManager: TokenManager? = null
-
     private var onUserBanned: (() -> Unit)? = null
+    private var onSessionExpired: (() -> Unit)? = null
 
-    fun initialize(manager: TokenManager, onBanned: (() -> Unit)? = null) {
+    fun initialize(
+        manager: TokenManager,
+        onBanned: (() -> Unit)? = null,
+        onExpired: (() -> Unit)? = null
+    ) {
         tokenManager = manager
         onUserBanned = onBanned
     }
@@ -28,13 +32,12 @@ object ApiClient {
                 val response = chain.proceed(requestBuilder.build())
 
                 if (response.code == 403) {
-                    tokenManager?.clearAllToken()
                     onUserBanned?.invoke()
                 }
 
                 response
             }
-            .authenticator(TokenAuthenticator(tokenManager!!))
+            .authenticator(TokenAuthenticator(tokenManager!!, onSessionExpired))
             .build()
     }
 
