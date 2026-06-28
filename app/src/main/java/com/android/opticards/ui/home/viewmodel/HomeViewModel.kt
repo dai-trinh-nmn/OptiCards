@@ -42,7 +42,6 @@ class HomeViewModel : ViewModel() {
                                 if (existing != null) {
                                     currentData.favoriteMerchants.map { if (it.merchantId == event.merchantId) it.copy(isFavorited = true) else it }
                                 } else if (event.merchant != null) {
-                                    // Đảm bảo copy cứng isFavorited = true vào List
                                     currentData.favoriteMerchants + event.merchant.copy(isFavorited = true)
                                 } else {
                                     currentData.favoriteMerchants

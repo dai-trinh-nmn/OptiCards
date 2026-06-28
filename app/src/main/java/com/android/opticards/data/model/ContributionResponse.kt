@@ -1,14 +1,16 @@
 package com.android.opticards.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class ContributionResponse (
-    val status: String,
-    val message: String,
-    val data: ContributionData?
+    @SerializedName("status") val status: String,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: ContributionData?
 )
 
 data class ContributionData(
-    val merchantName: String,
-    val mccCode: String,
-    val note: String?,
-    val imageUrl: String?
+    @SerializedName("merchantName") val merchantName: String,
+    @SerializedName("mccCode") val mccCode: String,
+    @SerializedName("note") val note: String?,
+    @SerializedName("imageUrl") val imageUrl: String?
 )

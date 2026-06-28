@@ -3,7 +3,6 @@ package com.android.opticards.data.model
 import com.google.gson.annotations.SerializedName
 import java.io.Serial
 
-// --- CHI TIẾT MERCHANT ---
 data class SubServiceDetail(
     @SerializedName("serviceId") val serviceId: Int,
     @SerializedName("serviceName") val serviceName: String,
@@ -32,7 +31,6 @@ data class MerchantDetailResponse(
     @SerializedName("mccGroups") val mccGroups: List<MccGroupDetail>
 )
 
-// --- GỢI Ý THẺ ---
 data class SuggestionRequest(
     @SerializedName("mccCode") val mccCode: String?,
     @SerializedName("amount") val amount: Int,

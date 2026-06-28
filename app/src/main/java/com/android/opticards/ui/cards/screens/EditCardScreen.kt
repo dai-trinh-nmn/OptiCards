@@ -179,7 +179,6 @@ fun EditCardScreen(
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                         .padding(bottom = if (showCustomNumpad) 320.dp else 0.dp)
                 ) {
-                    // --- KHỐI 1: NHẬN DIỆN THẺ (READ-ONLY) ---
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
                         shape = RoundedCornerShape(16.dp),

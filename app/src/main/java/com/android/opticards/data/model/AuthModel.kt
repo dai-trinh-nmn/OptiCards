@@ -7,20 +7,20 @@ data class GoogleTokenRequest(
 )
 
 data class AuthResponse(
-    val success: Boolean?,
-    val message: String?,
-    val role: String = "user",
+    @SerializedName("success") val success: Boolean?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("role") val role: String = "user",
     @SerializedName("accessToken") val accessToken: String?,
     @SerializedName("refreshToken") val refreshToken: String?,
-    val isOnboarded: Boolean?,
-    val isBanned: Boolean? = false,
-    val user: UserInfo?
+    @SerializedName("isOnboarded") val isOnboarded: Boolean?,
+    @SerializedName("isBanned") val isBanned: Boolean? = false,
+    @SerializedName("user") val user: UserInfo?
 )
 
 data class UserInfo(
-    val email: String?,
+    @SerializedName("email") val email: String?,
     @SerializedName("fullName") val fullName: String?,
-    val avatarUrl: String?
+    @SerializedName("avatarUrl") val avatarUrl: String?
 )
 
 data class RefreshTokenRequest(
@@ -28,7 +28,7 @@ data class RefreshTokenRequest(
 )
 
 data class RefreshTokenResponse(
-    val success: Boolean?,
+    @SerializedName("success") val success: Boolean?,
     @SerializedName("accessToken") val accessToken: String?,
     @SerializedName("refreshToken") val refreshToken: String?
 )

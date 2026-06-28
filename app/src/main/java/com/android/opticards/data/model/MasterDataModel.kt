@@ -1,18 +1,20 @@
 package com.android.opticards.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class BankResponse(
-    val id: Int,
-    val name: String,
-    val logoUrl: String,
-    val cards: List<CardTemplate>,
-    val membershipTiers: List<String> = emptyList()
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String,
+    @SerializedName("logoUrl") val logoUrl: String,
+    @SerializedName("cards") val cards: List<CardTemplate>,
+    @SerializedName("membershipTiers") val membershipTiers: List<String> = emptyList()
 )
 
 data class CardTemplate(
-    val id: Int,
-    val name: String,
-    val imageUrl: String,
-    val isMembershipLinked: Boolean = false,
-    val hasSpendBasedWaiver: Boolean = false,
-    val waiverMembershipTiers: List<String> = emptyList(),
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String,
+    @SerializedName("imageUrl") val imageUrl: String,
+    @SerializedName("isMembershipLinked") val isMembershipLinked: Boolean = false,
+    @SerializedName("hasSpendBasedWaiver") val hasSpendBasedWaiver: Boolean = false,
+    @SerializedName("waiverMembershipTiers") val waiverMembershipTiers: List<String> = emptyList(),
 )

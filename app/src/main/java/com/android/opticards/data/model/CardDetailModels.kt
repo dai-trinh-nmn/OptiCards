@@ -1,6 +1,7 @@
 package com.android.opticards.data.model
 
 import com.google.gson.annotations.SerializedName
+import java.io.Serial
 
 data class CardDetailResponse(
     @SerializedName("userCardId") val userCardId: Int,
@@ -49,27 +50,27 @@ data class RecentTransactionItem(
 )
 
 data class CategoryOption(
-    val categoryId: Int,
-    val categoryName: String,
-    val cashbackPercentage: Float,
-    val maxCap: Long?,
-    val notice: String?
+    @SerializedName("categoryId") val categoryId: Int,
+    @SerializedName("categoryName") val categoryName: String,
+    @SerializedName("cashbackPercentages") val cashbackPercentage: Float,
+    @SerializedName("maxCap") val maxCap: Long?,
+    @SerializedName("notice") val notice: String?
 )
 
 data class FlexCategoryInfoResponse(
-    val maxCategories: Int,
-    val remainingChanges: Int,
-    val effectTiming: String,
-    val currentSelectedIds: List<Int>,
-    val availableCategories: List<CategoryOption>,
+    @SerializedName("maxCategories") val maxCategories: Int,
+    @SerializedName("remainingChanges") val remainingChanges: Int,
+    @SerializedName("effectTiming") val effectTiming: String,
+    @SerializedName("currentSelectedIds") val currentSelectedIds: List<Int>,
+    @SerializedName("availableCategories") val availableCategories: List<CategoryOption>,
 )
 
 data class UpdateCategoryRequest(
-    val selectedCategoryIds: List<Int>
+    @SerializedName("selectedCategoryIds") val selectedCategoryIds: List<Int>
 )
 
 data class UpdateCardRequest(
-    val open_month: Int?,
-    val open_year: Int?,
-    val estimated_spend: Long?,
+    @SerializedName("open_month") val open_month: Int?,
+    @SerializedName("open_year") val open_year: Int?,
+    @SerializedName("estimated_spend") val estimated_spend: Long?,
 )

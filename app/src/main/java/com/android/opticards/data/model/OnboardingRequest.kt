@@ -1,17 +1,19 @@
 package com.android.opticards.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class CardPayload(
-    val cardId: Int,
-    val activationDate: String?,
-    val accumulatedSpend: Long,
+    @SerializedName("cardId") val cardId: Int,
+    @SerializedName("activationDate") val activationDate: String?,
+    @SerializedName("accumulatedSpend") val accumulatedSpend: Long,
 )
 
 data class MembershipPayload(
-    val bankId: Int,
-    val tierName: String
+    @SerializedName("bankId") val bankId: Int,
+    @SerializedName("tierName") val tierName: String
 )
 
 data class OnboardingSubmitPayload(
-    val memberships: List<MembershipPayload>,
-    val cards: List<CardPayload>
+    @SerializedName("memberships") val memberships: List<MembershipPayload>,
+    @SerializedName("cards") val cards: List<CardPayload>
 )

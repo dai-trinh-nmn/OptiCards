@@ -1,26 +1,28 @@
 package com.android.opticards.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class CashbackProgress(
-    val ruleName: String,
-    val currentAmount: Long,
-    val maxCap: Long
+    @SerializedName("ruleName") val ruleName: String,
+    @SerializedName("currentAmount") val currentAmount: Long,
+    @SerializedName("maxCap") val maxCap: Long
 )
 data class ConditionProgress(
-    val conditionType: String,
-    val current: Long,
-    val target: Long,
-    val isMet: Boolean
+    @SerializedName("conditionType") val conditionType: String,
+    @SerializedName("current") val current: Long,
+    @SerializedName("target") val target: Long,
+    @SerializedName("isMet") val isMet: Boolean
 )
 data class UserCardOverview(
-    val userCardId: Int,
-    val cardId: Int,
-    val cardName: String,
-    val cardImageUrl: String,
-    val cyclePeriod: String,
-    val cashbackProgresses: List<CashbackProgress>,
-    val conditions: List<ConditionProgress>,
-    val needsCategorySetup: Boolean? = false,
-    val rewardCurrency: String = "CASHBACK",
-    val cardStatus: String = "ACTIVE",
-    val closeDate: String? = null
+    @SerializedName("userCardId") val userCardId: Int,
+    @SerializedName("cardId") val cardId: Int,
+    @SerializedName("cardName") val cardName: String,
+    @SerializedName("cardImageUrl") val cardImageUrl: String,
+    @SerializedName("cyclePeriod") val cyclePeriod: String,
+    @SerializedName("cashbackProgresses") val cashbackProgresses: List<CashbackProgress>,
+    @SerializedName("conditions") val conditions: List<ConditionProgress>,
+    @SerializedName("needCategorySetup") val needsCategorySetup: Boolean? = false,
+    @SerializedName("rewardCurrency") val rewardCurrency: String = "CASHBACK",
+    @SerializedName("cardStatus") val cardStatus: String = "ACTIVE",
+    @SerializedName("closeDate") val closeDate: String? = null
 )
