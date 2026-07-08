@@ -48,11 +48,16 @@ fun PromotionCard(promo: PromotionOverview, modifier: Modifier = Modifier) {
                     .fillMaxHeight(0.6f)
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f), Color.Black.copy(alpha = 1f))
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.8f),
+                                Color.Black.copy(alpha = 1f)
+                            )
                         )
                     )
             )
 
+            val isExpired = promo.isExpired
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -61,7 +66,12 @@ fun PromotionCard(promo: PromotionOverview, modifier: Modifier = Modifier) {
                     .padding(horizontal = 10.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "Còn ${promo.calculatedDaysLeft} ngày", color = Color.White, fontSize = 10.sp)
+                Text(
+                    text = promo.timeRemainingLabel,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = if (isExpired) FontWeight.Bold else FontWeight.Normal
+                )
             }
 
             Column(

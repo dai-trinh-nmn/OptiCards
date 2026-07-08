@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -25,8 +26,12 @@ fun TopMerchantListScreen(
     onNavigateBack: () -> Unit,
     onNavigateToMerchantDetail: (Int) -> Unit
 ) {
-    val homeData by viewModel.homeData.collectAsState()
-    val topMerchants = homeData?.topMerchants ?: emptyList()
+    LaunchedEffect(Unit) {
+        viewModel.fetchFullTopMerchants()
+    }
+
+    val topMerchants by viewModel.fullTopMerchants.collectAsState()
+    val isLoading by viewModel.isLoadingFullTop.collectAsState()
 
     Scaffold(
         topBar = {
@@ -42,7 +47,11 @@ fun TopMerchantListScreen(
         },
         containerColor = Color(0xFFF8F9FA)
     ) { innerPadding ->
-        if (topMerchants.isEmpty()) {
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF157FEC))
+            }
+        } else if (topMerchants.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text("Chưa có dữ liệu", color = Color.Gray)
             }

@@ -62,6 +62,12 @@ interface ApiService {
     @GET("api/v1/merchants/search")
     suspend fun searchMerchants(@Query("q") keyword: String): Response<List<MerchantOverview>>
 
+    @GET("api/v1/merchants/top")
+    suspend fun getTopMerchants(
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0
+    ): Response<List<MerchantOverview>>
+
     // CONTRIBUTION
     @Multipart
     @POST("api/v1/merchants/contribute")

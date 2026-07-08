@@ -13,20 +13,39 @@ data class PromotionOverview(
     @SerializedName("tncUrl") val tncUrl: String?,
     @SerializedName("tag") val tag: String?
 ) {
-    val calculatedDaysLeft: Int
+    val timeRemainingLabel: String
         get() {
-            if (endDate.isNullOrEmpty()) return 0
+            if (endDate.isNullOrEmpty()) return "Đã hết hạn"
             return try {
                 val cleanDate = endDate.substringBefore('+').substringBefore('.')
                 val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-                val end = format.parse(cleanDate) ?: return 0
+                val end = format.parse(cleanDate) ?: return "Đã hết hạn"
                 val diff = end.time - System.currentTimeMillis()
 
-                if (diff < 0) 0 else TimeUnit.MILLISECONDS.toDays(diff).toInt()
+                if (diff <= 0) {
+                    "Đã hết hạn"
+                } else {
+                    val days = TimeUnit.MILLISECONDS.toDays(diff)
+                    if (days >= 1) {
+                        "Còn $days ngày"
+                    } else {
+                        val hours = TimeUnit.MILLISECONDS.toHours(diff)
+                        if (hours >= 1) {
+                            "Còn $hours giờ"
+                        } else {
+                            val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
+                            if (minutes > 0) "Còn $minutes phút" else "Sắp hết hạn"
+                        }
+                    }
+                }
             } catch (e: Exception) {
-                0
+                "Đã hết hạn"
             }
         }
+
+    // Giữ lại thuộc tính này để tránh lỗi compile nếu có màn hình khác dùng để check điều kiện ẩn/hiển thị
+    val isExpired: Boolean
+        get() = timeRemainingLabel == "Đã hết hạn"
 }
 
 data class PromotionListResponse(

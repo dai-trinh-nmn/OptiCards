@@ -38,6 +38,7 @@ import coil.compose.AsyncImage
 import com.android.opticards.data.model.CardSuggestionItem
 import com.android.opticards.ui.components.CustomNumpad
 import com.android.opticards.ui.components.CustomPopup
+import com.android.opticards.ui.components.PromotionCard
 import com.android.opticards.ui.merchant.viewmodel.MerchantDetailViewModel
 import com.android.opticards.utils.CurrencyVisualTransformation
 import com.android.opticards.utils.formatNumber
@@ -401,6 +402,35 @@ fun MerchantDetailScreen(
                             items(discoverCards) { card ->
                                 DiscoverCardItem(card = card)
                             }
+                        }
+                    }
+                }
+
+                val currentPromotions = merchant?.promotions ?: emptyList()
+
+                if (currentPromotions.isNotEmpty()) {
+                    item {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Khuyến mãi dành cho bạn",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(currentPromotions, key = { it.promoId }) { promo ->
+                                    PromotionCard(
+                                        promo = promo,
+                                        modifier = Modifier.width(280.dp) // Set cứng width để vuốt ngang
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = Color(0xFFF3F4F6), thickness = 8.dp)
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }

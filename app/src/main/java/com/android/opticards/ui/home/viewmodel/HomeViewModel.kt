@@ -23,6 +23,28 @@ class HomeViewModel : ViewModel() {
     private val _homeData = MutableStateFlow<HomeDashboardResponse?>(null)
     val homeData: StateFlow<HomeDashboardResponse?> = _homeData.asStateFlow()
 
+    private val _fullTopMerchants = MutableStateFlow<List<MerchantOverview>>(emptyList())
+    val fullTopMerchants: StateFlow<List<MerchantOverview>> = _fullTopMerchants.asStateFlow()
+
+    private val _isLoadingFullTop = MutableStateFlow(false)
+    val isLoadingFullTop: StateFlow<Boolean> = _isLoadingFullTop.asStateFlow()
+
+    fun fetchFullTopMerchants() {
+        viewModelScope.launch {
+            _isLoadingFullTop.value = true
+            try {
+                val response = ApiClient.apiService.getTopMerchants(50) // Lấy 50 top
+                if (response.isSuccessful) {
+                    _fullTopMerchants.value = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Lỗi tải danh sách Top Merchant"
+            } finally {
+                _isLoadingFullTop.value = false
+            }
+        }
+    }
+
     init {
         fetchDashboardData()
 
@@ -54,6 +76,11 @@ class HomeViewModel : ViewModel() {
                                 topMerchants = newTopMerchants,
                                 favoriteMerchants = newFavMerchants
                             )
+                        }
+                        _fullTopMerchants.update { list ->
+                            list.map {
+                                if (it.merchantId == event.merchantId) it.copy(isFavorited = event.isFavorited) else it
+                            }
                         }
                     }
                 }
@@ -102,6 +129,12 @@ class HomeViewModel : ViewModel() {
                 data.favoriteMerchants.filter { it.merchantId != targetId }
             }
             data.copy(topMerchants = newTopMerchants, favoriteMerchants = newFavMerchants)
+        }
+
+        _fullTopMerchants.update { list ->
+            list.map {
+                if (it.merchantId == targetId) it.copy(isFavorited = newStatus) else it
+            }
         }
 
         viewModelScope.launch {

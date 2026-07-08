@@ -18,7 +18,7 @@ class SearchHistoryManager(context: Context) {
         currentList.remove(query)
         currentList.add(0, query)
 
-        val limitedList = currentList.take(10)
+        val limitedList = currentList.take(5)
 
         val newHistoryString = limitedList.joinToString("|;;|")
         prefs.edit().putString(HISTORY_KEY, newHistoryString).apply()

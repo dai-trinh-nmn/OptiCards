@@ -28,7 +28,8 @@ data class MerchantDetailResponse(
     @SerializedName("favoriteCount") val favoriteCount: Int,
     @SerializedName("isFavorited") val isFavorited: Boolean,
     @SerializedName("merchantUrl") val merchantUrl: String?,
-    @SerializedName("mccGroups") val mccGroups: List<MccGroupDetail>
+    @SerializedName("mccGroups") val mccGroups: List<MccGroupDetail>,
+    @SerializedName("promotions") val promotions: List<PromotionOverview> = emptyList()
 )
 
 data class SuggestionRequest(

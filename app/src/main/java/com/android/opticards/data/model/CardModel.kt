@@ -21,7 +21,7 @@ data class UserCardOverview(
     @SerializedName("cyclePeriod") val cyclePeriod: String,
     @SerializedName("cashbackProgresses") val cashbackProgresses: List<CashbackProgress>,
     @SerializedName("conditions") val conditions: List<ConditionProgress>,
-    @SerializedName("needCategorySetup") val needsCategorySetup: Boolean? = false,
+    @SerializedName("needsCategorySetup") val needsCategorySetup: Boolean? = false,
     @SerializedName("rewardCurrency") val rewardCurrency: String = "CASHBACK",
     @SerializedName("cardStatus") val cardStatus: String = "ACTIVE",
     @SerializedName("closeDate") val closeDate: String? = null
