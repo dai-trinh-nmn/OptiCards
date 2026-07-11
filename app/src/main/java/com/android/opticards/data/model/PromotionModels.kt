@@ -43,7 +43,6 @@ data class PromotionOverview(
             }
         }
 
-    // Giữ lại thuộc tính này để tránh lỗi compile nếu có màn hình khác dùng để check điều kiện ẩn/hiển thị
     val isExpired: Boolean
         get() = timeRemainingLabel == "Đã hết hạn"
 }

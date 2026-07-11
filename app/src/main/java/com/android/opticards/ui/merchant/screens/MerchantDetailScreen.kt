@@ -424,7 +424,7 @@ fun MerchantDetailScreen(
                                 items(currentPromotions, key = { it.promoId }) { promo ->
                                     PromotionCard(
                                         promo = promo,
-                                        modifier = Modifier.width(280.dp) // Set cứng width để vuốt ngang
+                                        modifier = Modifier.width(280.dp)
                                     )
                                 }
                             }
